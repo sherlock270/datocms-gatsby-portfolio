@@ -1,101 +1,102 @@
-/* eslint no-unused-expressions:0 */
+import React from 'react'
+import PropTypes from 'prop-types'
+import { Link } from 'gatsby'
+import { StaticQuery, graphql } from "gatsby"
+import { HelmetDatoCms } from 'gatsby-source-datocms'
 
-import React from 'react';
-import PropTypes from 'prop-types';
-import { StaticQuery, graphql } from 'gatsby';
-import styled, { ThemeProvider, createGlobalStyle } from 'styled-components';
-import { SEO } from 'components';
-import theme from '../../config/Theme';
-import { media } from '../utils/media';
+import '../styles/index.sass'
 
-const GlobalStyle = createGlobalStyle`
-  ::selection {
-    color: ${theme.colors.bg};
-    background: ${theme.colors.primary};
-  }
-  body {
-    background: ${theme.colors.bg};
-    color: ${theme.default};
-    font-display: swap;
-    @media ${media.phone} {
-      font-size: 14px;
-    }
-  }
-  a {
-    color: ${theme.colors.grey.dark};
-    text-decoration: none;
-    transition: all ${theme.transitions.normal};
-  }
-  a:hover {
-    color: ${theme.colors.primary};
-  }
-  h1, h2, h3, h4 {
-    color: ${theme.colors.grey.dark};
-  }
-  blockquote {
-    font-style: italic;
-    position: relative;
-  }
-
-  blockquote:before {
-    content: "";
-    position: absolute;
-    background: ${theme.colors.primary};
-    height: 100%;
-    width: 6px;
-    margin-left: -1.6rem;
-  }
-  label {
-    margin-bottom: .5rem;
-    color: ${theme.colors.grey.dark};
-  }
-  input, textarea {
-    border-radius: .5rem;
-    border: none;
-    background: rgba(0, 0, 0, 0.05);
-    padding: .25rem 1rem;
-    &:focus {
-      outline: none;
-    }
-  }
-`;
-
-const Footer = styled.footer`
-  text-align: center;
-  padding: 3rem 0;
-  span {
-    font-size: 0.75rem;
-  }
-`;
-
-const Layout = ({ children }) => (
-  <StaticQuery
-    query={graphql`
-      query LayoutQuery {
-        site {
-          buildTime(formatString: "DD.MM.YYYY")
+const TemplateWrapper = ({ children }) => (
+  <StaticQuery query={graphql`
+    query LayoutQuery
+    {
+      datoCmsSite {
+        globalSeo {
+          siteName
+        }
+        faviconMetaTags {
+          ...GatsbyDatoCmsFaviconMetaTags
         }
       }
-    `}
-    render={data => (
-      <ThemeProvider theme={theme}>
-        <React.Fragment>
-          <SEO />
-          <GlobalStyle />
-          {children}
-          <Footer>
-            &copy; 2018 by John Doe. All rights reserved. <br />
-            <a href="https://github.com/LekoArts/gatsby-starter-minimal-blog">GitHub Repository</a> <br />
-            <span>Last build: {data.site.buildTime}</span>
-          </Footer>
-        </React.Fragment>
-      </ThemeProvider>
+      datoCmsHome {
+        seoMetaTags {
+          ...GatsbyDatoCmsSeoMetaTags
+        }
+        introTextNode {
+          childMarkdownRemark {
+            html
+          }
+        }
+        copyright
+      }
+      allDatoCmsSocialProfile(sort: { fields: [position], order: ASC }) {
+        edges {
+          node {
+            profileType
+            url
+          }
+        }
+      }
+    }
+  `}
+  render={data => (
+    <div className="container">
+      <HelmetDatoCms
+        favicon={data.datoCmsSite.faviconMetaTags}
+        seo={data.datoCmsHome.seoMetaTags}
+      />
+      <div className="container__sidebar">
+        <div className="sidebar">
+          <h6 className="sidebar__title">
+            <Link to="/">{data.datoCmsSite.globalSeo.siteName}</Link>
+          </h6>
+          <div
+            className="sidebar__intro"
+            dangerouslySetInnerHTML={{
+              __html: data.datoCmsHome.introTextNode.childMarkdownRemark.html,
+            }}
+          />
+          <ul className="sidebar__menu">
+            <li>
+              <Link to="/">Home</Link>
+            </li>
+            <li>
+              <Link to="/about">About</Link>
+            </li>
+          </ul>
+          <p className="sidebar__social">
+            {data.allDatoCmsSocialProfile.edges.map(({ node: profile }) => (
+              <a
+                key={profile.profileType}
+                href={profile.url}
+                target="blank"
+                className={`social social--${profile.profileType.toLowerCase()}`}
+              > </a>
+            ))}
+          </p>
+          <div className="sidebar__copyright">{data.datoCmsHome.copyright}</div>
+        </div>
+      </div>
+      <div className="container__body">
+        <div className="container__mobile-header">
+          <div className="mobile-header">
+            <div className="mobile-header__menu">
+              <Link to="#" data-js="toggleSidebar" />
+            </div>
+            <div className="mobile-header__logo">
+              <Link to="/">{data.datoCmsSite.globalSeo.siteName}</Link>
+            </div>
+          </div>
+        </div>
+        {children}
+      </div>
+    </div>
     )}
   />
-);
+)
 
-export default Layout;
+TemplateWrapper.propTypes = {
+  children: PropTypes.object,
+}
 
-Layout.propTypes = {
-  children: PropTypes.oneOfType([PropTypes.array, PropTypes.node]).isRequired,
-};
+export default TemplateWrapper
